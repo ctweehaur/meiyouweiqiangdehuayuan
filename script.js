@@ -1,5 +1,5 @@
 // ==========================================================================
-// ⚙️ 全互动式华文教学系统阅读器大脑 - script.js (支持 maxWords 动态读取版)
+// ⚙️ 全互动式华文教学系统阅读器大脑 - script.js (完整版：文本赏析 + maxWords 动态读取)
 // ==========================================================================
 
 let currentIdx = -1; 
@@ -7,6 +7,7 @@ let saved = JSON.parse(localStorage.getItem('saved_104')) || [];
 let quizData = [];
 let currentQuizIdx = 0;
 let isLocked = false;
+let isTeacherMode = false;  // 文本赏析状态开关
 
 window.onload = function() {
     // 初始化网页标题
@@ -35,6 +36,18 @@ function render() {
     let pNum = 1; 
     let p = document.createElement("p"); 
     
+    // 渲染课文顶部的全局总览赏析板
+    const topAnalysis = document.getElementById('teacherArticleAnalysis');
+    const topAnalysisContent = document.getElementById('teacherArticleAnalysisContent');
+    if (topAnalysis && topAnalysisContent) {
+        if (isTeacherMode && typeof lessonTeacherAnalysis !== 'undefined' && lessonTeacherAnalysis.overview) {
+            topAnalysis.style.display = "block";
+            topAnalysisContent.innerHTML = `<strong>💡 课文总览与赏析要点：</strong><br>${lessonTeacherAnalysis.overview}`;
+        } else {
+            topAnalysis.style.display = "none";
+        }
+    }
+    
     function finalizeParagraph(paragraphElement) {
         if (paragraphElement.childNodes.length === 0) return;
         const textContent = paragraphElement.innerText.trim();
@@ -46,11 +59,13 @@ function render() {
             paragraphElement.style.color = "#7f8c8d";    
             paragraphElement.style.fontSize = "15px";     
             paragraphElement.style.marginTop = "30px";    
+            cnt.appendChild(paragraphElement);
         } else {
             // 恢复最纯正的华文首行缩进空两格
             paragraphElement.style.position = "relative";
             paragraphElement.style.textIndent = "2em"; 
             paragraphElement.style.paddingLeft = "0"; 
+            paragraphElement.style.marginBottom = "15px";
             
             let s = document.createElement("span");
             s.className = "p-index";
@@ -63,9 +78,26 @@ function render() {
             s.style.textIndent = "0"; 
             
             paragraphElement.insertBefore(s, paragraphElement.firstChild); 
+            cnt.appendChild(paragraphElement);
+
+            // 👁️ 赏析节点预渲染
+            if (typeof lessonTeacherAnalysis !== 'undefined' && lessonTeacherAnalysis.paragraphs && lessonTeacherAnalysis.paragraphs[pNum]) {
+                let pAnalysis = document.createElement("div");
+                pAnalysis.id = `p-analysis-${pNum}`;
+                pAnalysis.className = "teacher-p-analysis";
+                pAnalysis.style.padding = "10px 15px"; 
+                pAnalysis.style.margin = "5px 0 20px 0";
+                pAnalysis.style.fontSize = "13.5px";
+                pAnalysis.style.borderRadius = "4px";
+                pAnalysis.style.textIndent = "0";
+                pAnalysis.innerHTML = `<strong>🔍 第 ${pNum} 段文本赏析：</strong>${lessonTeacherAnalysis.paragraphs[pNum]}`;
+                
+                pAnalysis.style.display = isTeacherMode ? "block" : "none";
+                cnt.appendChild(pAnalysis);
+            }
+
             pNum++; 
         }
-        cnt.appendChild(paragraphElement);
     }
 
     lessonData.forEach((d, i) => {
@@ -133,7 +165,7 @@ function renderQuestions() {
         }
 
         const textarea = document.createElement("textarea");
-        // 🔥 改进：从 q.maxWords 读取字数限制，默认 70 字
+        // 🔥 从 q.maxWords 读取字数限制，默认 70 字
         const maxWords = q.maxWords || 70;
         textarea.placeholder = (q.type && q.type === "summary") 
             ? `请在此处输入您的概述答案（注意不超过${maxWords}字）...` 
@@ -161,7 +193,7 @@ function renderQuestions() {
         counter.style.fontSize = "13px";
         counter.style.color = "#7f8c8d";
         if (q.type && q.type === "summary") {
-            // 🔥 改进：动态显示 maxWords
+            // 🔥 动态显示 maxWords
             counter.innerHTML = `当前字数：<span id="charCount_${q.id}">0</span> / ${maxWords} 字`;
         }
         controlRow.appendChild(counter);
@@ -299,7 +331,7 @@ function renderQuestions() {
                 const countEl = document.getElementById(`charCount_${q.id}`);
                 if (countEl) {
                     countEl.innerText = count;
-                    // 🔥 改进：动态读取 maxWords 判断超限
+                    // 🔥 动态读取 maxWords 判断超限
                     const maxWords = q.maxWords || 70;
                     countEl.style.color = count > maxWords ? "#e74c3c" : "#27ae60";
                 }
@@ -316,6 +348,36 @@ function renderQuestions() {
     });
 
     cnt.appendChild(qCard);
+}
+
+// 👁️ 控制开关：切换文本赏析面板
+function toggleTeacherMode() {
+    isTeacherMode = !isTeacherMode;
+    const btn = document.getElementById('teacherToggleBtn');
+    
+    if (isTeacherMode) {
+        btn.innerText = "❌ 关闭文本赏析";
+        btn.style.background = "#7d3c98";
+    } else {
+        btn.innerText = "👁️ 文本赏析";
+        btn.style.background = "#9b59b6";
+    }
+    
+    const topAnalysis = document.getElementById('teacherArticleAnalysis');
+    const topAnalysisContent = document.getElementById('teacherArticleAnalysisContent');
+    if (topAnalysis && topAnalysisContent) {
+        if (isTeacherMode && typeof lessonTeacherAnalysis !== 'undefined' && lessonTeacherAnalysis.overview) {
+            topAnalysis.style.display = "block";
+            topAnalysisContent.innerHTML = `<strong>💡 课文总览与赏析要点：</strong><br>${lessonTeacherAnalysis.overview}`;
+        } else {
+            topAnalysis.style.display = "none";
+        }
+    }
+
+    const pPanels = document.querySelectorAll('.teacher-p-analysis');
+    pPanels.forEach(panel => {
+        panel.style.display = isTeacherMode ? "block" : "none";
+    });
 }
 
 // ==================== 🛠️ 独立字词高精准字典解释弹窗核心逻辑 ============================
