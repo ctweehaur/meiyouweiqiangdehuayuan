@@ -1,5 +1,5 @@
 // ==========================================================================
-// ⚙️ 全互动式华文教学系统阅读器大脑 - script.js (2026 纯悬浮生词互动终极版)
+// ⚙️ 全互动式华文教学系统阅读器大脑 - script.js (支持 maxWords 动态读取版)
 // ==========================================================================
 
 let currentIdx = -1; 
@@ -133,7 +133,11 @@ function renderQuestions() {
         }
 
         const textarea = document.createElement("textarea");
-        textarea.placeholder = (q.type && q.type === "summary") ? "请在此处输入您的概述答案（注意不超过60字）..." : "请在此处输入您的答案...";
+        // 🔥 改进：从 q.maxWords 读取字数限制，默认 70 字
+        const maxWords = q.maxWords || 70;
+        textarea.placeholder = (q.type && q.type === "summary") 
+            ? `请在此处输入您的概述答案（注意不超过${maxWords}字）...` 
+            : "请在此处输入您的答案...";
         textarea.style.width = "100%";
         textarea.style.height = (q.type && q.type === "summary") ? "110px" : "80px";
         textarea.style.padding = "10px";
@@ -157,7 +161,8 @@ function renderQuestions() {
         counter.style.fontSize = "13px";
         counter.style.color = "#7f8c8d";
         if (q.type && q.type === "summary") {
-            counter.innerHTML = `当前字数：<span id="charCount_${q.id}">0</span> / 60 字`;
+            // 🔥 改进：动态显示 maxWords
+            counter.innerHTML = `当前字数：<span id="charCount_${q.id}">0</span> / ${maxWords} 字`;
         }
         controlRow.appendChild(counter);
 
@@ -294,7 +299,9 @@ function renderQuestions() {
                 const countEl = document.getElementById(`charCount_${q.id}`);
                 if (countEl) {
                     countEl.innerText = count;
-                    countEl.style.color = count > 60 ? "#e74c3c" : "#27ae60";
+                    // 🔥 改进：动态读取 maxWords 判断超限
+                    const maxWords = q.maxWords || 70;
+                    countEl.style.color = count > maxWords ? "#e74c3c" : "#27ae60";
                 }
             }
         }
